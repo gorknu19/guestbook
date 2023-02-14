@@ -1,0 +1,50 @@
+.nav{
+    color: #f2f2f2;
+    background-color: #afafaf;
+/*     
+
+
+ */
+overflow: hidden;
+display: flex;
+position: fixed;
+top: 0;
+left: 0;
+justify-content: space-around;
+align-items: center;
+z-index: 100;
+width: 100%;
+
+
+}
+
+
+
+.logButton{
+    font: medium;
+    color: #ffffff;
+    background-color: rgb(4, 142, 255);
+    padding-top: 9px;
+    padding-bottom: 9px;
+    padding-right: 12px;
+    padding-left: 12px;
+    border: 0;
+    text-align: center;
+    border-radius: 25px;
+    margin-left: 20px;
+}
+
+.logButton:hover {
+    background-color: blue;
+
+}
+
+.right{
+    text-align: center;
+    display: flex;
+    align-items: center;
+}
+
+.left{
+    text-align: center;
+}
