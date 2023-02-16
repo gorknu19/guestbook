@@ -5,7 +5,7 @@ import mysql from "mysql";
 
 const handler = nextConnect().get<NextApiRequest, NextApiResponse>(
   async (req, res) => {
-    var sql = `SELECT * FROM posts`;
+    var sql = `SELECT * FROM postComments`;
     con.query(sql, function (err, result) {
       if (err) {
         res.send(err);

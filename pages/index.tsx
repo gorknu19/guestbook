@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { Inter } from '@next/font/google'
 import styles from '@/styles/Home.module.css'
 import { useSession, signIn, signOut } from "next-auth/react"
-import { useCallback, useEffect, useState } from 'react'
+import { EventHandler, useCallback, useEffect, useState } from 'react'
 
 
 
@@ -12,12 +12,15 @@ let pageToShow=0
 
 function Home() {
  const [allPosts, setAllPosts] = useState([]);
+ const [allComments, setAllComments] = useState([]);
  const [postToShow, setPostToShow] = useState([]);
-  
+ const [commentId, setCommentId] = useState(0);
+ const [changeId, setChangeId] = useState(0);
   const { data: session } = useSession()
   const [showModal, setShowModal] = useState<boolean>(false);
   const [showCommentModal, setShowCommentModal] = useState<boolean>(false);
-
+  const [showChangeModal, setShowChangeModal] = useState<boolean>(false);
+  
   function clickmodal() {
     setShowModal(!showModal);
   }
@@ -38,8 +41,21 @@ function Home() {
       .then((res) => {
         res.reverse()
         setAllPosts(res);
-        // setCurrentPage(res.pagination.currentPage);
-        // setMaxPages(res.pagination.pages);
+
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    
+      fetch("/api/getComments".toString())
+      .then((res) => {
+        if (res.status !== 200) throw res.json();
+        return res.json();
+      })
+      .then((res) => {
+        res.reverse()
+        setAllComments(res);
+
       })
       .catch((err) => {
         console.log(err);
@@ -54,7 +70,7 @@ function Home() {
 
 
 
-
+console.log(allComments)
 
 
   async function createPost(e:any) {
@@ -86,8 +102,7 @@ function Home() {
   .then((response) => console.log(response.json()))
   .then((json) => window.location.replace("http://localhost:3000"));
   }
-
-  async function createComment(e:any) {
+  async function changePost(e:any) {
     e.preventDefault();
     clickmodal()
 
@@ -102,12 +117,41 @@ function Home() {
     
     
     console.log(posterName)
-    fetch("/api/createPost", {
+    fetch("/api/changePost", {
     method: "POST",
     body: JSON.stringify({
     postBody: postBody,
     postTitle: postTitle,
+    posterName: posterName,
+    postId:changeId,
+    
+  }),
+  headers: {
+    "Content-type": "application/json; charset=UTF-8"
+  }
+  })
+  .then((response) => console.log(response.json()))
+  .then((json) => window.location.replace("http://localhost:3000"));
+  }
+
+
+
+
+  async function createComment(e:any) {
+    e.preventDefault();
+
+    const postBody = e.target.postBody.value; // accessing directly
+    const posterName = session?.user?.name;
+    console.log(commentId)
+    
+    
+    
+    fetch("/api/createComment", {
+    method: "POST",
+    body: JSON.stringify({
+    postBody: postBody,
     posterName:posterName,
+    postId:commentId,
   }),
   headers: {
     "Content-type": "application/json; charset=UTF-8"
@@ -134,7 +178,6 @@ const paginateGood= (array:any, page_size:number, page_number:number)=>{
  }, [allPosts]);
   
   
-  console.log(postToShow)
 
   useEffect(() => {
     pagination(0);
@@ -161,14 +204,41 @@ let totalPages= Math.ceil(allPosts.length/5)
       }
   }
 
-  function clickCommentModal() {
+  function clickCommentModal(e:any) {
+    setCommentId(e.target.id)
     setShowCommentModal(!showCommentModal);
+  
   }
 
 
+  function deletePost(e:any) {
+    let deleteId = e.target.id
+    
+    fetch("/api/deletePost", {
+    method: "POST",
+    body: JSON.stringify({
+    postId:deleteId,
+  }),
+  headers: {
+    "Content-type": "application/json; charset=UTF-8"
+  }
+  })
+  .then((response) => console.log(response.json()))
+  .then((json) => window.location.replace("http://localhost:3000"));
 
+
+  }
+
+  function clickChangeModal(e: any) {
+    setChangeId(e.target.id)
+    setShowChangeModal(!showChangeModal)
+  }
 
   if (session) {
+    let ownPosts= allPosts.filter((o: any) => {
+      if(o.posterName == session.user?.name) return true
+    })
+
   return (
     <>
       <Head>
@@ -180,15 +250,33 @@ let totalPages= Math.ceil(allPosts.length/5)
       <main className={styles.main}>
         <div className={styles.left}>
           <div className={styles.allPostsContainer}>
-            {postToShow.map((o:any) => {
-            console.log(o)
+            {postToShow.map((o: any) => {
+              let comments:any = allComments.filter((ob: any) => {
+              if(ob.postId == o.id) return true
+              })
+              var mySqlDate = o.postDate.slice(0, 19).replace("T", " ");
+
+              console.log(comments)
             return (
               <>
                 <div key={o} className={styles.postContainer}>
                   <h1>{o.postTitle}</h1>
                   <p>{o.PostBody}</p>
                   <p>{o.posterName}</p>
-                  <button className={styles.button} onClick={clickCommentModal}>legg igjen kommentar</button>
+                  <p>{mySqlDate}</p>
+                  <button className={styles.button} onClick={clickCommentModal} id={o.id}>legg igjen kommentar</button>
+                  <h2>comments:</h2>
+                  {comments.map((obj: any) => {
+                    return (
+                      <>
+                        <div className={styles.postContainer}>
+                            <h3 key={obj.idC}>Comment from {obj.posterName}</h3>
+                            <p>{obj.posterBody}</p>
+                            <p>{obj.posterDate}</p>
+                          </div>
+                      </>
+                        )
+                  })}
                 </div>
               </>
             )
@@ -231,7 +319,36 @@ let totalPages= Math.ceil(allPosts.length/5)
             </div>
           </div>
           }
-          
+          <h3>Dine Posts:</h3>
+          {ownPosts.map((o:any) => {
+            return(
+            <>
+              <div key={o} className={styles.postContainer}>
+                <div className={styles.ownPosts}>
+                  <h3>{o.postTitle}</h3>
+                  <p>{o.PostBody}</p>
+                  <button onClick={clickChangeModal} className={styles.button} id={o.id}>Endre</button>
+                  <button onClick={deletePost} className={styles.button} id={o.id}>slett</button>
+                </div>
+              </div>
+            </>
+            )
+          })}
+          {showChangeModal &&
+          <div className={styles.modal}>
+            <div className={styles.modalcontent}>
+              <span className={styles.close} onClick={clickChangeModal}>&times;</span>
+              <form onSubmit={changePost} method='POST'>
+                <h1>endre Post!</h1>
+                <p>Tittel:</p>
+                <input type="text" max="45" className={styles.textInputTitle} name="postTitle" id='postTitle'></input>
+                <p>Tekst:</p>
+                  <textarea className={styles.textInputBody} name="postBody" id='postBody'></textarea><br />
+                <input type="submit" className={styles.submitButton}></input>
+              </form>
+            </div>
+          </div>
+          }
         </div>
       </main>
     </>
