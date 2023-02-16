@@ -3,15 +3,172 @@ import Image from 'next/image'
 import { Inter } from '@next/font/google'
 import styles from '@/styles/Home.module.css'
 import { useSession, signIn, signOut } from "next-auth/react"
+import { useCallback, useEffect, useState } from 'react'
 
 
 
 const inter = Inter({ subsets: ['latin'] })
+let pageToShow=0
 
-function Home(){
-  const { data: session } = useSession()
+function Home() {
+ const [allPosts, setAllPosts] = useState([]);
+ const [postToShow, setPostToShow] = useState([]);
   
-  if(session){
+  const { data: session } = useSession()
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [showCommentModal, setShowCommentModal] = useState<boolean>(false);
+
+  function clickmodal() {
+    setShowModal(!showModal);
+  }
+
+
+
+
+  const getAllPosts = useCallback(() => {
+    // let url = new URL(URL_KEY + '/api/products');
+    // url.searchParams.append('offset', offset.toString());
+    // url.searchParams.append('limit', limit.toString());
+
+    fetch("/api/getPosts".toString())
+      .then((res) => {
+        if (res.status !== 200) throw res.json();
+        return res.json();
+      })
+      .then((res) => {
+        res.reverse()
+        setAllPosts(res);
+        // setCurrentPage(res.pagination.currentPage);
+        // setMaxPages(res.pagination.pages);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }, []);
+
+  useEffect(() => {
+    getAllPosts();
+  }, [getAllPosts]);
+
+
+
+
+
+
+
+
+  async function createPost(e:any) {
+    e.preventDefault();
+    clickmodal()
+
+
+    const postBody = e.target.postBody.value; // accessing directly
+    const postTitle = e.target.elements.postTitle.value;
+    const posterName = session?.user?.name;
+    
+    
+    console.log(postTitle)
+    console.log(postBody)
+    
+    
+    console.log(posterName)
+    fetch("/api/createPost", {
+    method: "POST",
+    body: JSON.stringify({
+    postBody: postBody,
+    postTitle: postTitle,
+    posterName:posterName,
+  }),
+  headers: {
+    "Content-type": "application/json; charset=UTF-8"
+  }
+  })
+  .then((response) => console.log(response.json()))
+  .then((json) => window.location.replace("http://localhost:3000"));
+  }
+
+  async function createComment(e:any) {
+    e.preventDefault();
+    clickmodal()
+
+
+    const postBody = e.target.postBody.value; // accessing directly
+    const postTitle = e.target.elements.postTitle.value;
+    const posterName = session?.user?.name;
+    
+    
+    console.log(postTitle)
+    console.log(postBody)
+    
+    
+    console.log(posterName)
+    fetch("/api/createPost", {
+    method: "POST",
+    body: JSON.stringify({
+    postBody: postBody,
+    postTitle: postTitle,
+    posterName:posterName,
+  }),
+  headers: {
+    "Content-type": "application/json; charset=UTF-8"
+  }
+  })
+  .then((response) => console.log(response.json()))
+  .then((json) => window.location.replace("http://localhost:3000"));
+  }
+
+
+
+const paginateGood= (array:any, page_size:number, page_number:number)=>{
+ return array.slice(page_number * page_size, page_number * page_size + page_size);
+  };
+  
+
+  // function pagination(page_number: number) { 
+  //   postToShow.push(paginateGood(allPosts,5,0))
+  // }
+
+  
+  const pagination = useCallback((page_number:number) => {
+   setPostToShow(paginateGood(allPosts,5,page_number))
+ }, [allPosts]);
+  
+  
+  console.log(postToShow)
+
+  useEffect(() => {
+    pagination(0);
+  }, [pagination])
+
+
+let totalPages= Math.ceil(allPosts.length/5)
+
+
+  function nextPage() {
+    if (pageToShow + 1 == totalPages) {
+      
+    }else{
+    pageToShow = pageToShow + 1
+    pagination(pageToShow);
+      }
+    }
+  function prevPage() {
+    if (pageToShow == 0) {
+
+    }else{
+      pageToShow = pageToShow - 1
+      pagination(pageToShow);
+      }
+  }
+
+  function clickCommentModal() {
+    setShowCommentModal(!showCommentModal);
+  }
+
+
+
+
+  if (session) {
   return (
     <>
       <Head>
@@ -21,7 +178,61 @@ function Home(){
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className={styles.main}>
-    
+        <div className={styles.left}>
+          <div className={styles.allPostsContainer}>
+            {postToShow.map((o:any) => {
+            console.log(o)
+            return (
+              <>
+                <div key={o} className={styles.postContainer}>
+                  <h1>{o.postTitle}</h1>
+                  <p>{o.PostBody}</p>
+                  <p>{o.posterName}</p>
+                  <button className={styles.button} onClick={clickCommentModal}>legg igjen kommentar</button>
+                </div>
+              </>
+            )
+            })}
+            <div className={styles.paginationStyle}>
+            <h2>Page {pageToShow+1} of {totalPages}</h2>
+          <button onClick={prevPage} className={styles.button}>click for prev</button>
+              <button onClick={nextPage} className={styles.button}>click for next</button>
+        {showCommentModal &&
+          <div className={styles.modal}>
+            <div className={styles.modalcontent}>
+              <span className={styles.close} onClick={clickCommentModal}>&times;</span>
+              <form onSubmit={createComment} method='POST'>
+                <h1>legg igjen kommentar</h1>
+                <p>Tekst:</p>
+                <textarea className={styles.textInputBody} name="postBody" id='postBody'></textarea><br />
+                <input type="submit" className={styles.submitButton}></input>
+              </form>
+            </div>
+          </div>
+          }
+          </div>
+          </div>
+        </div>
+        <div className={styles.right}>
+          <h1>Lag en post!</h1>
+          <button className={styles.button} onClick={clickmodal}>Lag en post!</button>
+          {showModal &&
+          <div className={styles.modal}>
+            <div className={styles.modalcontent}>
+              <span className={styles.close} onClick={clickmodal}>&times;</span>
+              <form onSubmit={createPost} method='POST'>
+                <h1>Lag en Post!</h1>
+                <p>Tittel:</p>
+                <input type="text" max="45" className={styles.textInputTitle} name="postTitle" id='postTitle'></input>
+                <p>Tekst:</p>
+                <textarea className={styles.textInputBody} name="postBody" id='postBody'></textarea><br />
+                <input type="submit" className={styles.submitButton}></input>
+              </form>
+            </div>
+          </div>
+          }
+          
+        </div>
       </main>
     </>
   )
@@ -36,6 +247,7 @@ function Home(){
       </Head>
         <main className={styles.mainNotLoggedIn}>
         <h1>Logg inn for å se inlegg</h1>
+        <h2>Registrering trenges ikke, man trenger bare å logge inn med google</h2>
         </main>
     </>
   )
