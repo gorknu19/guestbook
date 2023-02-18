@@ -11,12 +11,12 @@ const inter = Inter({ subsets: ['latin'] })
 let pageToShow=0
 
 function Home() {
+  const { data: session } = useSession()
  const [allPosts, setAllPosts] = useState([]);
  const [allComments, setAllComments] = useState([]);
  const [postToShow, setPostToShow] = useState([]);
  const [commentId, setCommentId] = useState(0);
  const [changeId, setChangeId] = useState(0);
-  const { data: session } = useSession()
   const [showModal, setShowModal] = useState<boolean>(false);
   const [showCommentModal, setShowCommentModal] = useState<boolean>(false);
   const [showChangeModal, setShowChangeModal] = useState<boolean>(false);
@@ -238,7 +238,7 @@ let totalPages= Math.ceil(allPosts.length/5)
     let ownPosts= allPosts.filter((o: any) => {
       if(o.posterName == session.user?.name) return true
     })
-
+ 
   return (
     <>
       <Head>
@@ -257,13 +257,42 @@ let totalPages= Math.ceil(allPosts.length/5)
               var mySqlDate = o.postDate.slice(0, 19).replace("T", " ");
 
               console.log(comments)
+              if (session.user?.name == "Admin") {
+                return (
+              <>
+                <div key={o} className={styles.postContainer}>
+                  <h1>{o.postTitle}</h1>
+                      <p>{o.PostBody}</p>
+                      <br/>
+                  <p>Skrevet av: {o.posterName}</p>
+                  <p>{mySqlDate}</p>
+                  <button onClick={clickChangeModal} className={styles.button} id={o.id}>Endre</button>
+                  <button onClick={deletePost} className={styles.button} id={o.id}>slett</button><br/><br/>
+                  <button className={styles.button} onClick={clickCommentModal} id={o.id}>legg igjen kommentar</button>
+                  <h2>comments:</h2>
+                  {comments.map((obj: any) => {
+                    return (
+                      <>
+                        <div className={styles.postContainer}>
+                            <h3 key={obj.idC}>Comment from {obj.posterName}</h3>
+                            <p>{obj.posterBody}</p>
+                            <p>{obj.posterDate}</p>
+                          </div>
+                      </>
+                        )
+                  })}
+                </div>
+              </>
+                  )
+            }else
             return (
               <>
                 <div key={o} className={styles.postContainer}>
                   <h1>{o.postTitle}</h1>
                   <p>{o.PostBody}</p>
-                  <p>{o.posterName}</p>
-                  <p>{mySqlDate}</p>
+                  <br></br>
+                  <p>Skrevet av: {o.posterName}</p>
+                  <p>{o.mySqlDate}</p>
                   <button className={styles.button} onClick={clickCommentModal} id={o.id}>legg igjen kommentar</button>
                   <h2>comments:</h2>
                   {comments.map((obj: any) => {
